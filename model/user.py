@@ -2,22 +2,36 @@ import random
 import string
 from werkzeug.security import generate_password_hash, check_password_hash
 import app_config
+import os
 
 def gen_session_token(length=24):
     token = ''.join([random.choice(string.ascii_letters + string.digits) for i in range(length)])
     return token
 
 class User:
-    def __init__(self, username, password, token=None):
+    def __init__(self, db, username, password, token=None, avatar='default.jpg'):
+        self.db = db
         self.username = username
         self.password = password
         self.token = token
-        self.dump()
+        self.avatar = avatar
+    def get_avatar(self):
+        return self.avatar
+    
+    def set_avatar(self, file_name):
+        self.avatar = file_name
+        self.db.users.update_one({"username": self.username}, {
+            "$set" : {
+                "avatar": file_name
+            }
+        })
     
     @classmethod
-    def new(cls, username, password):
+    def new(cls, db, username, password):
         password = generate_password_hash(password)
-        return cls(username, password)
+        db.users.insert({ "username": username, "password": password })
+
+        return cls(db, username, password)
     
     @classmethod
     def from_file(cls, filename):
@@ -28,12 +42,28 @@ class User:
                 return cls(username, password)
             return cls(username, password, token)
     
+    @staticmethod
+    def find_user(db, username):
+        
+        return len(list(db.users.find({"username": username}))) > 0
+
+    @classmethod
+    def get_user(cls, db, username):
+
+        data = db.users.find_one({"username": username})
+        return cls(db, data["username"], data["password"], data.get('token', None), data.get('avatar', 'default.jpg'))
+    
     def authenticate(self, password):
         return check_password_hash(self.password, password)
+
+    def update_password(self, password):
+        self.password = generate_password_hash(password)
+        self.db.users.update_one({"username": self.username}, {"$set": {"password": self.password}})
     
     def init_session(self):
         self.token = gen_session_token()
-        self.dump()
+        self.db.users.update_one({"username": self.username}, {"$set": {"token": self.token}})
+
         return self.token
     
     def authorize(self, token):
@@ -41,11 +71,11 @@ class User:
     
     def terminate_session(self):
         self.token = None
-        self.dump()
+        self.db.users.update_one({"username": self.username}, {"$set": {"token": None}})
     
     def __str__(self):
         return f'{self.username};{self.password};{self.token}'
     
-    def dump(self):
+    def dump_to_file(self):
         with open(app_config.USER_DB_DIR + '/' + self.username + '.data', 'w') as f:
             f.write(str(self))

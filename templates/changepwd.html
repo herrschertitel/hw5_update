@@ -16,17 +16,17 @@
             </ul>
         {% endif %}
     {% endwith %}
-    <form action="/register" method="post">
-        <label for="user">User</label>
-        <input type="text" name="username">
+    <form action="/changepwd" method="post">
+        <label for="old_pwd">Old password</label>
+        <input type="password" name="old_pwd">
         <br>
-        <label for="password">Password</label>
-        <input type="password" name="password" minlength="6">
+        <label for="new_pwd">New password</label>
+        <input type="password" name="new_pwd" minlength="6">
         <br>
-        <label for="password_confirm">Confirm password</label>
-        <input type="password" name="password_confirm">
-        <input type="submit" value="Register">
+        <label for="new_pwd_confirm">Confirm new password</label>
+        <input type="password" name="new_pwd_confirm">
+        <input type="submit" value="Update">
     </form>
-    <span>Already have an account? <a href="/login">Log In</a></span>
+    <span>Back to <a href="/">home page</a></span>
 </body>
 </html>
